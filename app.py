@@ -32,27 +32,23 @@ def creationTable():
 def insertionDonnees(humidite, pression, temperature, ville, pays):
     print("insertion TODO")
 
+def texteExploitable(texte):
+    texte = texte.lower()
+    sansCaracteresSpeciaux = ''
+    for character in texte:
+        if character.isalnum():
+            sansCaracteresSpeciaux += character
+    texte = sansCaracteresSpeciaux
+    return texte
+
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
     form = Form()
 
     if form.validate_on_submit():
-        ville = form.ville.data
-        ville = ville.lower()
-        sansCaracteresSpeciaux = ''
-        for character in ville:
-            if character.isalnum():
-                sansCaracteresSpeciaux += character
-        ville = sansCaracteresSpeciaux
-
-        pays = form.pays.data
-        pays = pays.lower()
-        sansCaracteresSpeciaux = ''
-        for character in pays:
-            if character.isalnum():
-                sansCaracteresSpeciaux += character
-        pays = sansCaracteresSpeciaux
+        ville = texteExploitable(form.ville.data)
+        pays = texteExploitable(form.pays.data)
 
         meteo = requests.get("http://wttr.in/" + pays + "+" + ville + "?format=j1")
         temperature = meteo.json()["current_condition"][0]["temp_C"]
