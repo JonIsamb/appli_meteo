@@ -29,6 +29,10 @@ def creationTable():
     con.commit()
 
 
+def insertionDonnees(humidite, pression, temperature, ville, pays):
+    print("insertion TODO")
+
+
 @app.route('/', methods=['GET', 'POST'])
 def index():
     form = Form()
@@ -36,16 +40,23 @@ def index():
     if form.validate_on_submit():
         ville = form.ville.data
         pays = form.pays.data
+
         meteo = requests.get("http://wttr.in/" + pays + "+" + ville + "?format=j1")
-        con = sqlite3.connect('sqlite.db', check_same_thread=False)
-        cur = con.cursor()
+        temperature = meteo.json()["current_condition"][0]["temp_C"]
+        humidite = meteo.json()["current_condition"][0]["humidity"]
+        pression = meteo.json()["current_condition"][0]["pressure"]
 
         try:
             creationTable()
         except OperationalError:
             print("Table existante !")
 
-        return ville + " : " + meteo.json()["current_condition"][0]["temp_C"] + "&degC"
+        try:
+            insertionDonnees(humidite, pression, temperature, ville, pays)
+        except Exception:
+            print("Probeleme d'insertion !")
+
+        return ville + ", " + pays + " : <br />temperature : " + temperature + "<br /> humidite : " + humidite + "<br /> pression : " + pression
 
     return render_template('form.html', form=form)
 
