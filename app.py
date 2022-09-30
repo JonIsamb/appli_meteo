@@ -35,7 +35,8 @@ def index():
 
     if form.validate_on_submit():
         ville = form.ville.data
-        meteo = requests.get("http://wttr.in/" + ville + "?format=j1")
+        pays = form.pays.data
+        meteo = requests.get("http://wttr.in/" + pays + "+" + ville + "?format=j1")
         con = sqlite3.connect('sqlite.db', check_same_thread=False)
         cur = con.cursor()
 
