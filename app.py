@@ -39,7 +39,20 @@ def index():
 
     if form.validate_on_submit():
         ville = form.ville.data
+        ville = ville.lower()
+        sansCaracteresSpeciaux = ''
+        for character in ville:
+            if character.isalnum():
+                sansCaracteresSpeciaux += character
+        ville = sansCaracteresSpeciaux
+
         pays = form.pays.data
+        pays = pays.lower()
+        sansCaracteresSpeciaux = ''
+        for character in pays:
+            if character.isalnum():
+                sansCaracteresSpeciaux += character
+        pays = sansCaracteresSpeciaux
 
         meteo = requests.get("http://wttr.in/" + pays + "+" + ville + "?format=j1")
         temperature = meteo.json()["current_condition"][0]["temp_C"]
