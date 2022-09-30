@@ -13,6 +13,7 @@ app.secret_key = 'Ma clé secrète'
 
 class Form(FlaskForm):
     ville = StringField('ville', validators=[DataRequired()])
+    pays = StringField('pays', validators=[DataRequired()])
 
 
 @app.route('/', methods=['GET', 'POST'])
