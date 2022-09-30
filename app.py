@@ -16,6 +16,19 @@ class Form(FlaskForm):
     pays = StringField('pays', validators=[DataRequired()])
 
 
+def creationTable():
+    con = sqlite3.connect('sqlite.db', check_same_thread=False)
+    cur = con.cursor()
+    cur.execute('''CREATE TABLE ville(id int, nom text, codePostal text)''')
+    con.commit()
+    cur.execute('''CREATE TABLE pays(id int, nom text)''')
+    con.commit()
+    cur.execute('''CREATE TABLE releves(
+    id int, date text, id_ville int, id_pays int, 
+    humidite double, pression double, temperature double)''')
+    con.commit()
+
+
 @app.route('/', methods=['GET', 'POST'])
 def index():
     form = Form()
@@ -27,8 +40,7 @@ def index():
         cur = con.cursor()
 
         try:
-            cur.execute('''CREATE TABLE adresse(date text, rue text, label text, x float, y float)''')
-            con.commit()
+            creationTable()
         except OperationalError:
             print("Table existante !")
 
