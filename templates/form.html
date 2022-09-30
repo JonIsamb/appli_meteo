@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Form</title>
+</head>
+<body>
+<form method="POST" action="/">
+    {{ form.csrf_token }}
+    <p>
+        {{ form.ville.label }} {{ form.ville(size=20) }}
+    </p>
+    <input type="submit" value="Go">
+</form>
+</body>
+</html>
