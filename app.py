@@ -1,6 +1,7 @@
 import sqlite3
 from sqlite3 import OperationalError
 
+import wtf as wtf
 from flask import Flask, render_template
 import requests as requests
 from flask_wtf import FlaskForm
@@ -35,7 +36,21 @@ def index():
 
     if form.validate_on_submit():
         ville = form.ville.data
+        ville = ville.lower()
+        sansCaracteresSpeciaux = ''
+        for character in ville:
+            if character.isalnum():
+                sansCaracteresSpeciaux += character
+        ville = sansCaracteresSpeciaux
+
         pays = form.pays.data
+        pays = pays.lower()
+        sansCaracteresSpeciaux = ''
+        for character in pays:
+            if character.isalnum():
+                sansCaracteresSpeciaux += character
+        pays = sansCaracteresSpeciaux
+
         meteo = requests.get("http://wttr.in/" + pays + "+" + ville + "?format=j1")
         con = sqlite3.connect('sqlite.db', check_same_thread=False)
         cur = con.cursor()
