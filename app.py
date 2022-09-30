@@ -13,6 +13,20 @@ app.secret_key = 'Ma clé secrète'
 
 class Form(FlaskForm):
     ville = StringField('ville', validators=[DataRequired()])
+    pays = StringField('pays', validators=[DataRequired()])
+
+
+def creationTable():
+    con = sqlite3.connect('sqlite.db', check_same_thread=False)
+    cur = con.cursor()
+    cur.execute('''CREATE TABLE ville(id int, nom text, codePostal text)''')
+    con.commit()
+    cur.execute('''CREATE TABLE pays(id int, nom text)''')
+    con.commit()
+    cur.execute('''CREATE TABLE releves(
+    id int, date text, id_ville int, id_pays int, 
+    humidite double, pression double, temperature double)''')
+    con.commit()
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -21,13 +35,13 @@ def index():
 
     if form.validate_on_submit():
         ville = form.ville.data
-        meteo = requests.get("http://wttr.in/" + ville + "?format=j1")
+        pays = form.pays.data
+        meteo = requests.get("http://wttr.in/" + pays + "+" + ville + "?format=j1")
         con = sqlite3.connect('sqlite.db', check_same_thread=False)
         cur = con.cursor()
 
         try:
-            cur.execute('''CREATE TABLE adresse(date text, rue text, label text, x float, y float)''')
-            con.commit()
+            creationTable()
         except OperationalError:
             print("Table existante !")
 
