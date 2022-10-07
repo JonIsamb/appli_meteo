@@ -6,6 +6,7 @@ import requests as requests
 from flask_wtf import FlaskForm
 from wtforms import StringField
 from wtforms.validators import DataRequired
+import unicodedata
 
 app = Flask(__name__)
 app.secret_key = 'Ma clé secrète'
@@ -32,14 +33,23 @@ def creationTable():
 def insertionDonnees(humidite, pression, temperature, ville, pays):
     print("insertion TODO")
 
+
+
+def strip_accents(text):
+    text = unicodedata.normalize('NFD', text)\
+           .encode('ascii', 'ignore')\
+           .decode("utf-8")
+
+    return str(text)
+
 def texteExploitable(texte):
     texte = texte.lower()
     sansCaracteresSpeciaux = ''
     for character in texte:
         if character.isalnum():
             sansCaracteresSpeciaux += character
-    texte = sansCaracteresSpeciaux
-    return texte
+
+    return strip_accents(sansCaracteresSpeciaux)
 
 
 @app.route('/', methods=['GET', 'POST'])
