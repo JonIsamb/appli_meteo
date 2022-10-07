@@ -1,7 +1,6 @@
 import sqlite3
 from sqlite3 import OperationalError
 
-import wtf as wtf
 from flask import Flask, render_template
 import requests as requests
 from flask_wtf import FlaskForm
@@ -30,37 +29,43 @@ def creationTable():
     con.commit()
 
 
+def insertionDonnees(humidite, pression, temperature, ville, pays):
+    print("insertion TODO")
+
+def texteExploitable(texte):
+    texte = texte.lower()
+    sansCaracteresSpeciaux = ''
+    for character in texte:
+        if character.isalnum():
+            sansCaracteresSpeciaux += character
+    texte = sansCaracteresSpeciaux
+    return texte
+
+
 @app.route('/', methods=['GET', 'POST'])
 def index():
     form = Form()
 
     if form.validate_on_submit():
-        ville = form.ville.data
-        ville = ville.lower()
-        sansCaracteresSpeciaux = ''
-        for character in ville:
-            if character.isalnum():
-                sansCaracteresSpeciaux += character
-        ville = sansCaracteresSpeciaux
-
-        pays = form.pays.data
-        pays = pays.lower()
-        sansCaracteresSpeciaux = ''
-        for character in pays:
-            if character.isalnum():
-                sansCaracteresSpeciaux += character
-        pays = sansCaracteresSpeciaux
+        ville = texteExploitable(form.ville.data)
+        pays = texteExploitable(form.pays.data)
 
         meteo = requests.get("http://wttr.in/" + pays + "+" + ville + "?format=j1")
-        con = sqlite3.connect('sqlite.db', check_same_thread=False)
-        cur = con.cursor()
+        temperature = meteo.json()["current_condition"][0]["temp_C"]
+        humidite = meteo.json()["current_condition"][0]["humidity"]
+        pression = meteo.json()["current_condition"][0]["pressure"]
 
         try:
             creationTable()
         except OperationalError:
             print("Table existante !")
 
-        return ville + " : " + meteo.json()["current_condition"][0]["temp_C"] + "&degC"
+        try:
+            insertionDonnees(humidite, pression, temperature, ville, pays)
+        except Exception:
+            print("Probeleme d'insertion !")
+
+        return ville + ", " + pays + " : <br />temperature : " + temperature + "<br /> humidite : " + humidite + "<br /> pression : " + pression
 
     return render_template('form.html', form=form)
 
