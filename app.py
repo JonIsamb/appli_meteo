@@ -1,4 +1,5 @@
 import sqlite3
+from datetime import datetime
 from sqlite3 import OperationalError
 
 from flask import Flask, render_template
@@ -16,29 +17,67 @@ class Form(FlaskForm):
     pays = StringField('pays', validators=[DataRequired()])
 
 
-def creationTable():
+def creation_table():
     con = sqlite3.connect('sqlite.db', check_same_thread=False)
     cur = con.cursor()
-    cur.execute('''CREATE TABLE ville(id int, nom text, codePostal text)''')
-    con.commit()
-    cur.execute('''CREATE TABLE pays(id int, nom text)''')
-    con.commit()
-    cur.execute('''CREATE TABLE releves(
-    id int, date text, id_ville int, id_pays int, 
+    cur.execute('''CREATE TABLE ville(id integer primary key autoincrement, nom text, id_pays int)''')
+    cur.execute('''CREATE TABLE pays(id integer primary key autoincrement, nom text)''')
+    cur.execute('''CREATE TABLE releves(id integer primary key autoincrement, date text, id_ville int, 
     humidite double, pression double, temperature double)''')
     con.commit()
 
 
-def insertionDonnees(humidite, pression, temperature, ville, pays):
-    print("insertion TODO")
+def insertion_donnees(humidite, pression, temperature, ville, pays):
+    con = sqlite3.connect('sqlite.db', check_same_thread=False)
+    cur = con.cursor()
+    # On vérifie s'il faut insérer le pays ou
+    # Simplement récupérer son id
+    query = "SELECT COUNT(*) as nb FROM pays WHERE nom = '" + pays + "'"
+    cur.execute(query)
+    # Si le pays n'existe pas, on le crée
+    if cur.fetchall()[0][0] == 0:
+        query = "INSERT INTO pays('nom') VALUES('" + pays + "')"
+        cur.execute(query)
+    # On récupère l'id du pays
+    query = "SELECT id FROM pays WHERE nom = '" + pays + "'"
+    cur.execute(query)
+    idPays = cur.fetchall()[0][0]
 
-def texteExploitable(texte):
+    # On vérifie s'il faut insérer la ville ou
+    # Simplement récupérer son id
+    query = "SELECT COUNT(*) as nb FROM ville WHERE nom = '" + ville + "'"
+    cur.execute(query)
+    # Si le pays n'existe pas, on le crée
+    if cur.fetchall()[0][0] == 0:
+        query = "INSERT INTO ville('nom', 'id_pays') VALUES('" + ville + "', " + str(idPays) + ")"
+        cur.execute(query)
+        print("Insertion effectuée")
+    # On récupère l'id du pays
+    query = "SELECT id FROM ville WHERE nom = '" + ville + "'"
+    cur.execute(query)
+    idVille = cur.fetchall()[0][0]
+
+    # On vérifie que les mesures ne sont pas trop proches
+    date = datetime.now().strftime("%Y-%m-%d %H:%M")
+    query = "SELECT COUNT(*) FROM releves WHERE date = '" + date + "'"
+    cur.execute(query)
+    # Si aucune mesure pour cette date existe, on l'effectue
+    if cur.fetchall()[0][0] == 0:
+        query = "INSERT INTO releves('date', 'id_ville', 'humidite', 'pression', 'temperature') VALUES('" \
+                + date + "', " + str(idVille) + ", " + str(humidite) + ", " + str(pression) + ", " + str(temperature) \
+                + ")"
+        cur.execute(query)
+
+    con.commit()
+
+
+def texte_exploitable(texte):
     texte = texte.lower()
-    sansCaracteresSpeciaux = ''
+    sans_caracteres_speciaux = ''
     for character in texte:
         if character.isalnum():
-            sansCaracteresSpeciaux += character
-    texte = sansCaracteresSpeciaux
+            sans_caracteres_speciaux += character
+    texte = sans_caracteres_speciaux
     return texte
 
 
@@ -47,8 +86,8 @@ def index():
     form = Form()
 
     if form.validate_on_submit():
-        ville = texteExploitable(form.ville.data)
-        pays = texteExploitable(form.pays.data)
+        ville = texte_exploitable(form.ville.data)
+        pays = texte_exploitable(form.pays.data)
 
         meteo = requests.get("http://wttr.in/" + pays + "+" + ville + "?format=j1")
         temperature = meteo.json()["current_condition"][0]["temp_C"]
@@ -56,14 +95,14 @@ def index():
         pression = meteo.json()["current_condition"][0]["pressure"]
 
         try:
-            creationTable()
-        except OperationalError:
-            print("Table existante !")
+            creation_table()
+        except OperationalError as e:
+            print("Les tables sont déjà créées")
 
         try:
-            insertionDonnees(humidite, pression, temperature, ville, pays)
-        except Exception:
-            print("Probeleme d'insertion !")
+            insertion_donnees(humidite, pression, temperature, ville, pays)
+        except Exception as e:
+            print(e)
 
         return ville + ", " + pays + " : <br />temperature : " + temperature + "<br /> humidite : " + humidite + "<br /> pression : " + pression
 
