@@ -1,6 +1,7 @@
 import sqlite3
 from datetime import datetime
 from sqlite3 import OperationalError
+import matplotlib.pyplot as plt
 
 from flask import Flask, render_template
 import requests as requests
@@ -27,7 +28,7 @@ def creation_table():
     con.commit()
 
 
-def insertion_donnees(humidite, pression, temperature, ville, pays):
+def insertion_donnees(humidite, pression, temperature, ville, pays)->int :
     con = sqlite3.connect('sqlite.db', check_same_thread=False)
     cur = con.cursor()
     # On vérifie s'il faut insérer le pays ou
@@ -45,7 +46,7 @@ def insertion_donnees(humidite, pression, temperature, ville, pays):
 
     # On vérifie s'il faut insérer la ville ou
     # Simplement récupérer son id
-    query = "SELECT COUNT(*) as nb FROM ville WHERE nom = '" + ville + "'"
+    query = "SELECT COUNT(*) as nb FROM ville WHERE nom = '" + ville + "' AND id_pays = " + str(idPays)
     cur.execute(query)
     # Si le pays n'existe pas, on le crée
     if cur.fetchall()[0][0] == 0:
@@ -69,6 +70,26 @@ def insertion_donnees(humidite, pression, temperature, ville, pays):
         cur.execute(query)
 
     con.commit()
+    return idVille
+
+
+def recuperation_donnees(idVille)-> list:
+    con = sqlite3.connect('sqlite.db', check_same_thread=False)
+    cur = con.cursor()
+    query = "SELECT * FROM releves WHERE id_ville = " + str(idVille)
+    cur.execute(query)
+    dates = []
+    humidites = []
+    pressions = []
+    temperatures = []
+    for tuple in cur.fetchall():
+        dates.append(tuple[1])
+        humidites.append(tuple[3])
+        pressions.append(tuple[4])
+        temperatures.append(tuple[5])
+
+    con.commit()
+    return [dates, humidites, pressions, temperatures]
 
 
 def texte_exploitable(texte):
@@ -79,6 +100,26 @@ def texte_exploitable(texte):
             sans_caracteres_speciaux += character
     texte = sans_caracteres_speciaux
     return texte
+
+
+def generation_img_graphique(donnees):
+    fig = plt.figure()
+    plt.xticks(ticks=range(len(donnees[0])), rotation=90)
+    plt.title("Humidité")
+    plt.plot(donnees[0], donnees[1])
+    fig.savefig('./static/images/humidite_plot.jpg', bbox_inches='tight', dpi=150)
+
+    fig = plt.figure()
+    plt.xticks(ticks=range(len(donnees[0])), rotation=90)
+    plt.title("Pression")
+    plt.plot(donnees[0], donnees[2])
+    fig.savefig('./static/images/pression_plot.jpg', bbox_inches='tight', dpi=150)
+
+    fig = plt.figure()
+    plt.xticks(ticks=range(len(donnees[0])), rotation=90)
+    plt.title("Température")
+    plt.plot(donnees[0], donnees[3])
+    fig.savefig('./static/images/temperature_plot.jpg', bbox_inches='tight', dpi=150)
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -100,11 +141,21 @@ def index():
             print("Les tables sont déjà créées")
 
         try:
-            insertion_donnees(humidite, pression, temperature, ville, pays)
+            idVille = insertion_donnees(humidite, pression, temperature, ville, pays)
         except Exception as e:
             print(e)
 
-        return ville + ", " + pays + " : <br />temperature : " + temperature + "<br /> humidite : " + humidite + "<br /> pression : " + pression
+        try:
+            donnees_stat = recuperation_donnees(idVille)
+        except Exception as e:
+            print(e)
+
+        generation_img_graphique(donnees_stat)
+
+        localisation = {"ville": ville, "pays": pays}
+        actuellement = {"temperature": temperature, "humidite": humidite, "pression": pression}
+        return render_template('affichage.html', donnees={"localisation": localisation, "actuellement": actuellement})
+        #return ville + ", " + pays + " : <br />temperature : " + temperature + "<br /> humidite : " + humidite + "<br /> pression : " + pression
 
     return render_template('form.html', form=form)
 
