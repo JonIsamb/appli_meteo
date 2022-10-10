@@ -28,7 +28,7 @@ def creation_table():
     con.commit()
 
 
-def insertion_donnees(humidite, pression, temperature, ville, pays)->int :
+def insertion_donnees(humidite, pression, temperature, ville, pays) -> int:
     con = sqlite3.connect('sqlite.db', check_same_thread=False)
     cur = con.cursor()
     # On vérifie s'il faut insérer le pays ou
@@ -42,21 +42,21 @@ def insertion_donnees(humidite, pression, temperature, ville, pays)->int :
     # On récupère l'id du pays
     query = "SELECT id FROM pays WHERE nom = '" + pays + "'"
     cur.execute(query)
-    idPays = cur.fetchall()[0][0]
+    id_pays = cur.fetchall()[0][0]
 
     # On vérifie s'il faut insérer la ville ou
     # Simplement récupérer son id
-    query = "SELECT COUNT(*) as nb FROM ville WHERE nom = '" + ville + "' AND id_pays = " + str(idPays)
+    query = "SELECT COUNT(*) as nb FROM ville WHERE nom = '" + ville + "' AND id_pays = " + str(id_pays)
     cur.execute(query)
     # Si le pays n'existe pas, on le crée
     if cur.fetchall()[0][0] == 0:
-        query = "INSERT INTO ville('nom', 'id_pays') VALUES('" + ville + "', " + str(idPays) + ")"
+        query = "INSERT INTO ville('nom', 'id_pays') VALUES('" + ville + "', " + str(id_pays) + ")"
         cur.execute(query)
         print("Insertion effectuée")
     # On récupère l'id du pays
     query = "SELECT id FROM ville WHERE nom = '" + ville + "'"
     cur.execute(query)
-    idVille = cur.fetchall()[0][0]
+    id_ville = cur.fetchall()[0][0]
 
     # On vérifie que les mesures ne sont pas trop proches
     date = datetime.now().strftime("%Y-%m-%d %H:%M")
@@ -65,28 +65,28 @@ def insertion_donnees(humidite, pression, temperature, ville, pays)->int :
     # Si aucune mesure pour cette date existe, on l'effectue
     if cur.fetchall()[0][0] == 0:
         query = "INSERT INTO releves('date', 'id_ville', 'humidite', 'pression', 'temperature') VALUES('" \
-                + date + "', " + str(idVille) + ", " + str(humidite) + ", " + str(pression) + ", " + str(temperature) \
+                + date + "', " + str(id_ville) + ", " + str(humidite) + ", " + str(pression) + ", " + str(temperature) \
                 + ")"
         cur.execute(query)
 
     con.commit()
-    return idVille
+    return id_ville
 
 
-def recuperation_donnees(idVille)-> list:
+def recuperation_donnees(id_ville) -> list:
     con = sqlite3.connect('sqlite.db', check_same_thread=False)
     cur = con.cursor()
-    query = "SELECT * FROM releves WHERE id_ville = " + str(idVille)
+    query = "SELECT * FROM releves WHERE id_ville = " + str(id_ville)
     cur.execute(query)
     dates = []
     humidites = []
     pressions = []
     temperatures = []
-    for tuple in cur.fetchall():
-        dates.append(tuple[1])
-        humidites.append(tuple[3])
-        pressions.append(tuple[4])
-        temperatures.append(tuple[5])
+    for row in cur.fetchall():
+        dates.append(row[1])
+        humidites.append(row[3])
+        pressions.append(row[4])
+        temperatures.append(row[5])
 
     con.commit()
     return [dates, humidites, pressions, temperatures]
@@ -102,24 +102,12 @@ def texte_exploitable(texte):
     return texte
 
 
-def generation_img_graphique(donnees):
+def generation_img_graphique(donnees, id_donnees, titre, nom_img):
     fig = plt.figure()
     plt.xticks(ticks=range(len(donnees[0])), rotation=90)
-    plt.title("Humidité")
-    plt.plot(donnees[0], donnees[1])
-    fig.savefig('./static/images/humidite_plot.jpg', bbox_inches='tight', dpi=150)
-
-    fig = plt.figure()
-    plt.xticks(ticks=range(len(donnees[0])), rotation=90)
-    plt.title("Pression")
-    plt.plot(donnees[0], donnees[2])
-    fig.savefig('./static/images/pression_plot.jpg', bbox_inches='tight', dpi=150)
-
-    fig = plt.figure()
-    plt.xticks(ticks=range(len(donnees[0])), rotation=90)
-    plt.title("Température")
-    plt.plot(donnees[0], donnees[3])
-    fig.savefig('./static/images/temperature_plot.jpg', bbox_inches='tight', dpi=150)
+    plt.title(titre)
+    plt.plot(donnees[0], donnees[id_donnees])
+    fig.savefig(f"./static/images/{nom_img}.jpg", bbox_inches='tight', dpi=150)
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -137,25 +125,21 @@ def index():
 
         try:
             creation_table()
-        except OperationalError as e:
+        except OperationalError:
             print("Les tables sont déjà créées")
 
         try:
-            idVille = insertion_donnees(humidite, pression, temperature, ville, pays)
+            id_ville = insertion_donnees(humidite, pression, temperature, ville, pays)
+            donnees_stat = recuperation_donnees(id_ville)
+            generation_img_graphique(donnees_stat, 1, "Humidité", "humidite_plot")
+            generation_img_graphique(donnees_stat, 2, "Pression", "pression_plot")
+            generation_img_graphique(donnees_stat, 3, "Température", "temperature_plot")
         except Exception as e:
             print(e)
-
-        try:
-            donnees_stat = recuperation_donnees(idVille)
-        except Exception as e:
-            print(e)
-
-        generation_img_graphique(donnees_stat)
 
         localisation = {"ville": ville, "pays": pays}
         actuellement = {"temperature": temperature, "humidite": humidite, "pression": pression}
         return render_template('affichage.html', donnees={"localisation": localisation, "actuellement": actuellement})
-        #return ville + ", " + pays + " : <br />temperature : " + temperature + "<br /> humidite : " + humidite + "<br /> pression : " + pression
 
     return render_template('form.html', form=form)
 
