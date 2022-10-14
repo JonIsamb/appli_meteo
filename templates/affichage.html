@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Affichage</title>
+</head>
+<body>
+    <h2>
+        {{ donnees.localisation.ville }}, {{ donnees.localisation.pays }}
+    </h2>
+    <ul>
+        <li>température : {{ donnees.actuellement.temperature }}&deg;C</li>
+        <li>pression : {{ donnees.actuellement.pression }}</li>
+        <li>humidité : {{ donnees.actuellement.humidite }}</li>
+    </ul>
+
+    <div style="display: flex; flex-direction: row; width: 100%">
+        <img src="static/images/humidite_plot.jpg" style="width: 33%" alt="humidite graph"/>
+        <img src="static/images/pression_plot.jpg" style="width: 33%" alt="pression graph"/>
+        <img src="static/images/temperature_plot.jpg" style="width: 33%" alt="temperature graph"/>
+    </div>
+</body>
+</html>
