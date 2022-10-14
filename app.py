@@ -59,8 +59,8 @@ def insertion_donnees(humidite, pression, temperature, ville, pays) -> int:
     id_ville = cur.fetchall()[0][0]
 
     # On vérifie que les mesures ne sont pas trop proches
-    date = datetime.now().strftime("%Y-%m-%d %H:%M")
-    query = "SELECT COUNT(*) FROM releves WHERE date = '" + date + "'"
+    date = datetime.now().strftime("%Y-%m-%d %Hh")
+    query = "SELECT COUNT(*) FROM releves WHERE date = '" + date + "' AND id_ville = " + str(id_ville)
     cur.execute(query)
     # Si aucune mesure pour cette date existe, on l'effectue
     if cur.fetchall()[0][0] == 0:
@@ -68,6 +68,8 @@ def insertion_donnees(humidite, pression, temperature, ville, pays) -> int:
                 + date + "', " + str(id_ville) + ", " + str(humidite) + ", " + str(pression) + ", " + str(temperature) \
                 + ")"
         cur.execute(query)
+    else:
+        print("La mesure a déjà été prise cette heure")
 
     con.commit()
     return id_ville
