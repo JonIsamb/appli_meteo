@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 
 from flask import Flask, render_template
 import requests as requests
+from flask_crontab import Crontab
 from flask_wtf import FlaskForm
 from wtforms import StringField
 from wtforms.validators import DataRequired
@@ -12,6 +13,7 @@ from wtforms.validators import DataRequired
 app = Flask(__name__)
 app.secret_key = 'Ma clé secrète'
 
+crontab = Crontab(app)
 
 class Form(FlaskForm):
     ville = StringField('ville', validators=[DataRequired()])
@@ -144,6 +146,30 @@ def index():
         return render_template('affichage.html', donnees={"localisation": localisation, "actuellement": actuellement})
 
     return render_template('form.html', form=form)
+
+@crontab.job(minute="0", hour="1")
+def requetes_predefinies():
+    con = sqlite3.connect('sqlite.db', check_same_thread=False)
+    cur = con.cursor()
+    query = "SELECT VILLE.nom, PAYS.nom FROM VILLE JOIN PAYS ON VILLE.id_pays = PAYS.id"
+
+    for row in cur.fetchall():
+        ville = row[0]
+        pays = row[1]
+
+        meteo = requests.get("http://wttr.in/" + pays + "+" + ville + "?format=j1")
+        temperature = meteo.json()["current_condition"][0]["temp_C"]
+        humidite = meteo.json()["current_condition"][0]["humidity"]
+        pression = meteo.json()["current_condition"][0]["pressure"]
+
+        try:
+            id_ville = insertion_donnees(humidite, pression, temperature, ville, pays)
+            donnees_stat = recuperation_donnees(id_ville)
+            generation_img_graphique(donnees_stat, 1, "Humidité", "humidite_plot")
+            generation_img_graphique(donnees_stat, 2, "Pression", "pression_plot")
+            generation_img_graphique(donnees_stat, 3, "Température", "temperature_plot")
+        except Exception as e:
+            print(e)
 
 
 if __name__ == '__main__':
