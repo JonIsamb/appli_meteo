@@ -3,21 +3,78 @@
 <head>
     <meta charset="UTF-8">
     <title>Affichage</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-Zenh87qX5JnK2Jl0vWa8Ck2rdkQ2Bzep5IDxbcnCeuOxjzrPF/et3URy9Bv1WTRi" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-OERcA2EqjJCMA+/3y+gxIOqMEjwtxJY7qPCqsdltbNJuaOe923+mo//f6V8Qbsw3" crossorigin="anonymous"></script>
 </head>
 <body>
-    <h2>
-        {{ donnees.localisation.ville }}, {{ donnees.localisation.pays }}
-    </h2>
-    <ul>
-        <li>température : {{ donnees.actuellement.temperature }}&deg;C</li>
-        <li>pression : {{ donnees.actuellement.pression }}</li>
-        <li>humidité : {{ donnees.actuellement.humidite }}</li>
-    </ul>
 
-    <div style="display: flex; flex-direction: row; width: 100%">
-        <img src="static/images/humidite_plot.jpg" style="width: 33%" alt="humidite graph"/>
-        <img src="static/images/pression_plot.jpg" style="width: 33%" alt="pression graph"/>
-        <img src="static/images/temperature_plot.jpg" style="width: 33%" alt="temperature graph"/>
+<div class="card m-auto mt-5" style="width: 500px">
+    <div class="card-body">
+        <h5 class="card-title">{{ donnees.localisation.ville }}</h5>
+        <h6 class="card-subtitle mb-2 text-muted">{{ donnees.localisation.pays }}</h6>
+        <ul class="list-group">
+          <li class="list-group-item">température : {{ donnees.actuellement.temperature }}&deg;C</li>
+          <li class="list-group-item">pression : {{ donnees.actuellement.pression }}</li>
+          <li class="list-group-item">humidité : {{ donnees.actuellement.humidite }}</li>
+        </ul>
+        <!-- Afficher Temperature -->
+        <button type="button" class="btn btn-primary m-3 ml-0" data-bs-toggle="modal" data-bs-target="#modalTemperature">
+          température
+        </button>
+        <!-- Afficher Temperature -->
+        <button type="button" class="btn btn-primary m-3" data-bs-toggle="modal" data-bs-target="#modalHumidite">
+          humidité
+        </button>
+        <!-- Afficher Temperature -->
+        <button type="button" class="btn btn-primary m-3" data-bs-toggle="modal" data-bs-target="#modalPression">
+          pression
+        </button>
+    </div>
+</div>
+
+    <!-- Temperature -->
+    <div class="modal fade modal-lg" id="modalTemperature" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalTemperatureLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h1 class="modal-title fs-5" id="modalTemperatureLabel">Température</h1>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <img src="static/images/temperature_plot.jpg" style="width: 100%" alt="temperature graph"/>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Humidité -->
+    <div class="modal fade modal-lg" id="modalHumidite" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalHumiditeLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h1 class="modal-title fs-5" id="modalHumiditeLabel">Humidité</h1>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <img src="static/images/humidite_plot.jpg" style="width: 100%" alt="humidite graph"/>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pression -->
+    <div class="modal fade modal-lg" id="modalPression" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalPressionLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h1 class="modal-title fs-5" id="modalPressionLabel">Pression</h1>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <img src="static/images/pression_plot.jpg" style="width: 100%" alt="pression graph"/>
+          </div>
+        </div>
+      </div>
     </div>
 </body>
 </html>
