@@ -102,14 +102,14 @@ def strip_accents(text):
 
     return str(text)
 
-def texteExploitable(texte):
+def texte_exploitable(texte):
     texte = texte.lower()
     sans_caracteres_speciaux = ''
     for character in texte:
         if character.isalnum():
-            sansCaracteresSpeciaux += character
+            sans_caracteres_speciaux += character
 
-    return strip_accents(sansCaracteresSpeciaux)
+    return strip_accents(sans_caracteres_speciaux)
 
 
 def generation_img_graphique(donnees, id_donnees, titre, nom_img):
