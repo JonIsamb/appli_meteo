@@ -9,6 +9,7 @@ from flask_crontab import Crontab
 from flask_wtf import FlaskForm
 from wtforms import StringField
 from wtforms.validators import DataRequired
+import unicodedata
 
 app = Flask(__name__)
 app.secret_key = 'Ma clé secrète'
@@ -92,18 +93,23 @@ def recuperation_donnees(id_ville) -> list:
         pressions.append(row[4])
         temperatures.append(row[5])
 
-    con.commit()
-    return [dates, humidites, pressions, temperatures]
 
 
-def texte_exploitable(texte):
+def strip_accents(text):
+    text = unicodedata.normalize('NFD', text)\
+           .encode('ascii', 'ignore')\
+           .decode("utf-8")
+
+    return str(text)
+
+def texteExploitable(texte):
     texte = texte.lower()
     sans_caracteres_speciaux = ''
     for character in texte:
         if character.isalnum():
-            sans_caracteres_speciaux += character
-    texte = sans_caracteres_speciaux
-    return texte
+            sansCaracteresSpeciaux += character
+
+    return strip_accents(sansCaracteresSpeciaux)
 
 
 def generation_img_graphique(donnees, id_donnees, titre, nom_img):
