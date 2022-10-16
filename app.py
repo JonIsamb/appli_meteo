@@ -1,8 +1,11 @@
 import sqlite3
+from datetime import datetime
 from sqlite3 import OperationalError
+import matplotlib.pyplot as plt
 
 from flask import Flask, render_template
 import requests as requests
+from flask_crontab import Crontab
 from flask_wtf import FlaskForm
 from wtforms import StringField
 from wtforms.validators import DataRequired
@@ -11,27 +14,84 @@ import unicodedata
 app = Flask(__name__)
 app.secret_key = 'Ma clé secrète'
 
+crontab = Crontab(app)
 
 class Form(FlaskForm):
     ville = StringField('ville', validators=[DataRequired()])
     pays = StringField('pays', validators=[DataRequired()])
 
 
-def creationTable():
+def creation_table():
     con = sqlite3.connect('sqlite.db', check_same_thread=False)
     cur = con.cursor()
-    cur.execute('''CREATE TABLE ville(id int, nom text, codePostal text)''')
-    con.commit()
-    cur.execute('''CREATE TABLE pays(id int, nom text)''')
-    con.commit()
-    cur.execute('''CREATE TABLE releves(
-    id int, date text, id_ville int, id_pays int, 
+    cur.execute('''CREATE TABLE ville(id integer primary key autoincrement, nom text, id_pays int)''')
+    cur.execute('''CREATE TABLE pays(id integer primary key autoincrement, nom text)''')
+    cur.execute('''CREATE TABLE releves(id integer primary key autoincrement, date text, id_ville int, 
     humidite double, pression double, temperature double)''')
     con.commit()
 
 
-def insertionDonnees(humidite, pression, temperature, ville, pays):
-    print("insertion TODO")
+def insertion_donnees(humidite, pression, temperature, ville, pays) -> int:
+    con = sqlite3.connect('sqlite.db', check_same_thread=False)
+    cur = con.cursor()
+    # On vérifie s'il faut insérer le pays ou
+    # Simplement récupérer son id
+    query = "SELECT COUNT(*) as nb FROM pays WHERE nom = '" + pays + "'"
+    cur.execute(query)
+    # Si le pays n'existe pas, on le crée
+    if cur.fetchall()[0][0] == 0:
+        query = "INSERT INTO pays('nom') VALUES('" + pays + "')"
+        cur.execute(query)
+    # On récupère l'id du pays
+    query = "SELECT id FROM pays WHERE nom = '" + pays + "'"
+    cur.execute(query)
+    id_pays = cur.fetchall()[0][0]
+
+    # On vérifie s'il faut insérer la ville ou
+    # Simplement récupérer son id
+    query = "SELECT COUNT(*) as nb FROM ville WHERE nom = '" + ville + "' AND id_pays = " + str(id_pays)
+    cur.execute(query)
+    # Si le pays n'existe pas, on le crée
+    if cur.fetchall()[0][0] == 0:
+        query = "INSERT INTO ville('nom', 'id_pays') VALUES('" + ville + "', " + str(id_pays) + ")"
+        cur.execute(query)
+        print("Insertion effectuée")
+    # On récupère l'id du pays
+    query = "SELECT id FROM ville WHERE nom = '" + ville + "'"
+    cur.execute(query)
+    id_ville = cur.fetchall()[0][0]
+
+    # On vérifie que les mesures ne sont pas trop proches
+    date = datetime.now().strftime("%Y-%m-%d %Hh")
+    query = "SELECT COUNT(*) FROM releves WHERE date = '" + date + "' AND id_ville = " + str(id_ville)
+    cur.execute(query)
+    # Si aucune mesure pour cette date existe, on l'effectue
+    if cur.fetchall()[0][0] == 0:
+        query = "INSERT INTO releves('date', 'id_ville', 'humidite', 'pression', 'temperature') VALUES('" \
+                + date + "', " + str(id_ville) + ", " + str(humidite) + ", " + str(pression) + ", " + str(temperature) \
+                + ")"
+        cur.execute(query)
+    else:
+        print("La mesure a déjà été prise cette heure")
+
+    con.commit()
+    return id_ville
+
+
+def recuperation_donnees(id_ville) -> list:
+    con = sqlite3.connect('sqlite.db', check_same_thread=False)
+    cur = con.cursor()
+    query = "SELECT * FROM releves WHERE id_ville = " + str(id_ville)
+    cur.execute(query)
+    dates = []
+    humidites = []
+    pressions = []
+    temperatures = []
+    for row in cur.fetchall():
+        dates.append(row[1])
+        humidites.append(row[3])
+        pressions.append(row[4])
+        temperatures.append(row[5])
 
 
 
@@ -44,7 +104,7 @@ def strip_accents(text):
 
 def texteExploitable(texte):
     texte = texte.lower()
-    sansCaracteresSpeciaux = ''
+    sans_caracteres_speciaux = ''
     for character in texte:
         if character.isalnum():
             sansCaracteresSpeciaux += character
@@ -52,13 +112,21 @@ def texteExploitable(texte):
     return strip_accents(sansCaracteresSpeciaux)
 
 
+def generation_img_graphique(donnees, id_donnees, titre, nom_img):
+    fig = plt.figure()
+    plt.xticks(ticks=range(len(donnees[0])), rotation=90)
+    plt.title(titre)
+    plt.plot(donnees[0], donnees[id_donnees])
+    fig.savefig(f"./static/images/{nom_img}.jpg", bbox_inches='tight', dpi=150)
+
+
 @app.route('/', methods=['GET', 'POST'])
 def index():
     form = Form()
 
     if form.validate_on_submit():
-        ville = texteExploitable(form.ville.data)
-        pays = texteExploitable(form.pays.data)
+        ville = texte_exploitable(form.ville.data)
+        pays = texte_exploitable(form.pays.data)
 
         meteo = requests.get("http://wttr.in/" + pays + "+" + ville + "?format=j1")
         temperature = meteo.json()["current_condition"][0]["temp_C"]
@@ -66,18 +134,48 @@ def index():
         pression = meteo.json()["current_condition"][0]["pressure"]
 
         try:
-            creationTable()
+            creation_table()
         except OperationalError:
-            print("Table existante !")
+            print("Les tables sont déjà créées")
 
         try:
-            insertionDonnees(humidite, pression, temperature, ville, pays)
-        except Exception:
-            print("Probeleme d'insertion !")
+            id_ville = insertion_donnees(humidite, pression, temperature, ville, pays)
+            donnees_stat = recuperation_donnees(id_ville)
+            generation_img_graphique(donnees_stat, 1, "Humidité", "humidite_plot")
+            generation_img_graphique(donnees_stat, 2, "Pression", "pression_plot")
+            generation_img_graphique(donnees_stat, 3, "Température", "temperature_plot")
+        except Exception as e:
+            print(e)
 
-        return ville + ", " + pays + " : <br />temperature : " + temperature + "<br /> humidite : " + humidite + "<br /> pression : " + pression
+        localisation = {"ville": ville, "pays": pays}
+        actuellement = {"temperature": temperature, "humidite": humidite, "pression": pression}
+        return render_template('affichage.html', donnees={"localisation": localisation, "actuellement": actuellement})
 
     return render_template('form.html', form=form)
+
+@crontab.job(minute="0", hour="1")
+def requetes_predefinies():
+    con = sqlite3.connect('sqlite.db', check_same_thread=False)
+    cur = con.cursor()
+    query = "SELECT VILLE.nom, PAYS.nom FROM VILLE JOIN PAYS ON VILLE.id_pays = PAYS.id"
+
+    for row in cur.fetchall():
+        ville = row[0]
+        pays = row[1]
+
+        meteo = requests.get("http://wttr.in/" + pays + "+" + ville + "?format=j1")
+        temperature = meteo.json()["current_condition"][0]["temp_C"]
+        humidite = meteo.json()["current_condition"][0]["humidity"]
+        pression = meteo.json()["current_condition"][0]["pressure"]
+
+        try:
+            id_ville = insertion_donnees(humidite, pression, temperature, ville, pays)
+            donnees_stat = recuperation_donnees(id_ville)
+            generation_img_graphique(donnees_stat, 1, "Humidité", "humidite_plot")
+            generation_img_graphique(donnees_stat, 2, "Pression", "pression_plot")
+            generation_img_graphique(donnees_stat, 3, "Température", "temperature_plot")
+        except Exception as e:
+            print(e)
 
 
 if __name__ == '__main__':

@@ -3,17 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <title>Form</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-Zenh87qX5JnK2Jl0vWa8Ck2rdkQ2Bzep5IDxbcnCeuOxjzrPF/et3URy9Bv1WTRi" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-OERcA2EqjJCMA+/3y+gxIOqMEjwtxJY7qPCqsdltbNJuaOe923+mo//f6V8Qbsw3" crossorigin="anonymous"></script>
 </head>
 <body>
-<form method="POST" action="/">
-    {{ form.csrf_token }}
-    <p>
-        {{ form.ville.label }} {{ form.ville(size=20) }}
-    </p>
-        <p>
-        {{ form.pays.label }} {{ form.pays(size=20) }}
-    </p>
-    <input type="submit" value="Go">
-</form>
+
+    <div class="card m-auto mt-5" style="width: 500px">
+          <div class="card-body">
+            <h5 class="card-title">Selection du lieu</h5>
+              <form method="POST" action="/">
+                  {{ form.csrf_token }}
+                  <p>
+                      {{ form.ville.label }} {{ form.ville(size=20) }}
+                  </p>
+                  <p>
+                      {{ form.pays.label }} {{ form.pays(size=20) }}
+                  </p>
+                  <button type="submit" class="btn btn-primary mb-3">selectionner</button>
+            </form>
+          </div>
+    </div>
+
+
 </body>
 </html>
