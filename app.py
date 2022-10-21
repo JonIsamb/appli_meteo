@@ -65,11 +65,10 @@ def insertion_donnees(humidite, pression, temperature, ville, pays) -> int:
     date = datetime.now().strftime("%Y-%m-%d %Hh")
     query = "SELECT COUNT(*) FROM releves WHERE date = '" + date + "' AND id_ville = " + str(id_ville)
     cur.execute(query)
+
     # Si aucune mesure pour cette date existe, on l'effectue
     if cur.fetchall()[0][0] == 0:
-        query = "INSERT INTO releves('date', 'id_ville', 'humidite', 'pression', 'temperature') VALUES('" \
-                + date + "', " + str(id_ville) + ", " + str(humidite) + ", " + str(pression) + ", " + str(temperature) \
-                + ")"
+        query = "INSERT INTO releves('date', 'id_ville', 'humidite', 'pression', 'temperature') VALUES('" + date + "', " + str(id_ville) + ", " + str(humidite) + ", " + str(pression) + ", " + str(temperature) + ")"
         cur.execute(query)
     else:
         print("La mesure a déjà été prise cette heure")
@@ -92,6 +91,8 @@ def recuperation_donnees(id_ville) -> list:
         humidites.append(row[3])
         pressions.append(row[4])
         temperatures.append(row[5])
+
+    return [dates, humidites, pressions, temperatures]
 
 
 
